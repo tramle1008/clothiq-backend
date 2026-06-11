@@ -9,5 +9,6 @@ public class SbEcommerceApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(SbEcommerceApplication.class, args);
 	}
-
 }
+
+//java -jar target/sbEcommerce-0.0.1-SNAPSHOT.jar

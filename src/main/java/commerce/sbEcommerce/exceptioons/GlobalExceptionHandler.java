@@ -1,41 +1,39 @@
 package commerce.sbEcommerce.exceptioons;
 
-
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @RestControllerAdvice
-
 public class GlobalExceptionHandler {
 
-//    @ExceptionHandler(Exception.class)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity <Map<String, String>> methodArgumentNotValidException(MethodArgumentNotValidException e){
-        Map<String, String> respon = new HashMap<>();
-        //lấy danh sách lỗi
-        e.getBindingResult().getAllErrors().forEach( err -> {
-            String fieldname = ((FieldError)err).getField();
-            String message = err.getDefaultMessage();
-            respon.put(fieldname,message);
-        });
-        return new ResponseEntity<Map<String,String>>(
-                respon, HttpStatus.BAD_REQUEST
-        );
+    public ResponseEntity<String> methodArgumentNotValidException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getAllErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage())
+                .orElse("Invalid request");
+        return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<String> handleConstraintViolationException(ConstraintViolationException e) {
+        String message = e.getConstraintViolations().stream()
+                .findFirst()
+                .map(ConstraintViolation::getMessage)
+                .orElse("Validation failed");
+        return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<String> myResourceNotFound(ResourceNotFoundException e){
-        String messString = e.getMessage();
-        return  new ResponseEntity<>(messString, HttpStatus.NOT_FOUND);
-
+    public ResponseEntity<String> myResourceNotFound(ResourceNotFoundException e) {
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
     }
+
     @ExceptionHandler(APIException.class)
     public ResponseEntity<String> handleAPIException(APIException ex) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
@@ -45,5 +43,4 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleUnauthorizedException(UnauthorizedException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
     }
-
 }

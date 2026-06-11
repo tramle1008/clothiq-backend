@@ -11,6 +11,6 @@ public class AdminStatsDTO {
     private long totalUsers;
     private long totalProducts;
     private long totalOrders;
-    private double totalRevenue;
+    private double revenueThisMonth;
     private long pendingDeliveries;
 }

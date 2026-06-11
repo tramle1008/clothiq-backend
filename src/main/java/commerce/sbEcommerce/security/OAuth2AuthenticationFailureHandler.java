@@ -1,0 +1,43 @@
+package commerce.sbEcommerce.security;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.io.IOException;
+import java.util.List;
+
+@Component
+public class OAuth2AuthenticationFailureHandler implements AuthenticationFailureHandler {
+
+    @Value("#{'${frontend.urls}'.split(',')}")
+    private List<String> frontendUrls;
+
+    @Override
+    public void onAuthenticationFailure(HttpServletRequest request,
+                                        HttpServletResponse response,
+                                        AuthenticationException exception) throws IOException, ServletException {
+        String redirectUrl = UriComponentsBuilder
+                .fromUriString(resolveFrontendUrl())
+                .path("/login")
+                .queryParam("error", "oauth2_failed")
+                .queryParam("message", exception.getMessage())
+                .build()
+                .toUriString();
+
+        response.sendRedirect(redirectUrl);
+    }
+
+    private String resolveFrontendUrl() {
+        return frontendUrls.stream()
+                .map(String::trim)
+                .filter(url -> !url.isEmpty())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No frontend URL configured"));
+    }
+}

@@ -3,17 +3,15 @@ package commerce.sbEcommerce.security;
 import commerce.sbEcommerce.security.jwt.AuthEntryPointJwt;
 import commerce.sbEcommerce.security.jwt.AuthTokenFilter;
 import commerce.sbEcommerce.security.services.UserDetailsServiceIml;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,79 +19,87 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-//@EnableMethodSecurity
+//@EnableMethodSecurity // Uncomment if you want to use method-level security annotations like @PreAuthorize
 @EnableWebSecurity
 public class WebSecurityConfig {
-    /*
-Tôi muốn xác thực bằng JWT, dùng user trong database, mật khẩu mã hóa, filter riêng của mình
-Spring Security hỏi: Ai load user? Ai xử lý JWT filter? Ai mã hóa password?
-Ai xử lý lỗi khi không có quyền? Ai xác thực đăng nhập username/password?
-Ai điều phối tất cả?”
-   */
-    //Ai xử lý việc load thông tin người dùng? → UserDetailsServiceImpl
-    @Autowired
-    UserDetailsServiceIml userDetailsService;
 
-    //Ai xử lý JWT filter? → AuthTokenFilter
-    @Autowired
-    private AuthEntryPointJwt unauthorizedHandler;
+    private final UserDetailsServiceIml userDetailsService;
+    private final AuthEntryPointJwt unauthorizedHandler;
 
-    //Nếu không có quyền thì ai trả lỗi? → AuthEntryPointJwt
+    public WebSecurityConfig(UserDetailsServiceIml userDetailsService,
+                             AuthEntryPointJwt unauthorizedHandler) {
+        this.userDetailsService = userDetailsService;
+        this.unauthorizedHandler = unauthorizedHandler;
+    }
+
     @Bean
     public AuthTokenFilter authTokenFilter(){
         return new AuthTokenFilter();
     }
 
-    //Ai xác thực username + password? → DaoAuthenticationProvider (dùng UserDetailsService + PasswordEncoder)
     @Bean
-   public DaoAuthenticationProvider authenticationProvider(){
+   public DaoAuthenticationProvider authenticationProvider(PasswordEncoder passwordEncoder){
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
 
         authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
+        authProvider.setPasswordEncoder(passwordEncoder);
 
         return authProvider;
     }
-    // Dùng để mã hóa và kiểm tra mật khẩu người dùng → BCryptPasswordEncoder
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-    //  Ai điều phối quá trình xác thực? → AuthenticationManager
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
-    //FitterChain của riêng tôi
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
+                                           OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler,
+                                           DaoAuthenticationProvider authenticationProvider) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/public/**",
                                 "/api/products/**",
+                                "/api/stores",
+                                "/api/stores/nearest",
                                 "/error",
                                 "/images/**",
                                 "/api/payments/sepapy-callback",
                                 "/api/orders/status/**",
-                                "/calljson"
+                                "/calljson",
+                                "/oauth2/**", // Allow access to OAuth2 endpoints
+                                "/login/oauth2/code/google" // Google OAuth2 callback URL
                         ).permitAll()
                         .requestMatchers("/api/payments/qr").authenticated()
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/deliver/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_DELIVER")
                         .anyRequest().authenticated()
                 )
-                .authenticationProvider(authenticationProvider())
+                .oauth2Login(oauth2 -> oauth2 // Enable OAuth2 Login
+                        .authorizationEndpoint(authorization -> authorization
+                                .baseUri("/oauth2/authorize") // Custom authorization base URI
+                        )
+                        .redirectionEndpoint(redirection -> redirection
+                                .baseUri("/login/oauth2/code/*") // Custom redirection base URI
+                        )
+                        .successHandler(oAuth2AuthenticationSuccessHandler) // Use our custom success handler
+                        .failureHandler(oAuth2AuthenticationFailureHandler)
+                )
+                .authenticationProvider(authenticationProvider)
                 .addFilterBefore(authTokenFilter(), UsernamePasswordAuthenticationFilter.class)
                 .headers(headers -> headers.frameOptions(f -> f.sameOrigin()));
         return http.build();
     }
-
-
-
 }

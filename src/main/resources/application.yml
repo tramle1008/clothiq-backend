@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: sbEcommerce
+  datasource:
+    url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:clothiq}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+    username: ${MYSQLUSER:root}
+    password: ${MYSQLPASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 10MB
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID} # Lấy từ biến môi trường GOOGLE_CLIENT_ID
+            client-secret: ${GOOGLE_CLIENT_SECRET} # Lấy từ biến môi trường GOOGLE_CLIENT_SECRET
+            scope:
+              - email
+              - profile
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+
+project:
+  image: images/
+image:
+  base:
+    url: ${BASE_API_URL}/images
+frontend:
+  urls: ${BASE_FRONTEND_URL}
+system:
+  user:
+    name: ${SYSTEM_NAME:system}
+    email: ${SYSTEM_EMAIL:admin@example.com}
+    password: ${SYSTEM_PASSWORD:12345678}
+jwt:
+  secret: ${SECRET_KEY}
+  expiration: 86400000
+logging:
+  level:
+    commerce.sbEcommerce.security.jwt: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework: INFO
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36}.%M:%L - %msg%n'
+
+# ... (existing configuration)
+

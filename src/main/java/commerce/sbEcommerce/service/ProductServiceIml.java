@@ -133,6 +133,7 @@ public ProductDTO addProduct_Image(Long categoryId, ProductDTO dto, MultipartFil
         String filename = "defaultImage.jpg";
         Product product = new Product();
         product.setProductName(productDTO.getProductName());
+        product.setProductCode(productDTO.getProductCode());
         product.setDescription(productDTO.getDescription());
         product.setQuantity(productDTO.getQuantity());
         product.setPrice(productDTO.getPrice());
@@ -149,6 +150,7 @@ public ProductDTO addProduct_Image(Long categoryId, ProductDTO dto, MultipartFil
         ProductDTO response = new ProductDTO();
         response.setProductId(saved.getProductId());
         response.setProductName(saved.getProductName());
+        response.setProductCode(saved.getProductCode());
         response.setImage(saved.getImage());
         response.setDescription(saved.getDescription());
         response.setPrice(saved.getPrice());
@@ -263,6 +265,34 @@ public ProductResponse getProductByKey(String key, Integer pageNumber, Integer p
     return response;
 }
 
+    @Override
+    public ProductResponse searchProductsByCodeOrName(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        Sort sort = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+
+        Page<Product> productPage = productRepository
+                .findByProductCodeContainingIgnoreCaseOrProductNameContainingIgnoreCase(key, key, pageable);
+
+        List<ProductDTO> productDTOs = productPage.getContent().stream()
+                .map(product -> {
+                    ProductDTO productDTO = modelMapper.map(product, ProductDTO.class);
+                    productDTO.setImage(contructImageUrl(product.getImage()));
+                    return productDTO;
+                })
+                .collect(Collectors.toList());
+
+        ProductResponse response = new ProductResponse();
+        response.setContent(productDTOs);
+        response.setPageNumber(productPage.getNumber());
+        response.setPageSize(productPage.getSize());
+        response.setTotalElements(productPage.getTotalElements());
+        response.setTotalPages(productPage.getTotalPages());
+        response.setLastPage(productPage.isLast());
+
+        return response;
+    }
+
 
     @Override
     public ProductDTO updateProduct(ProductDTO productDTO, Long productId) {
@@ -273,6 +303,10 @@ public ProductResponse getProductByKey(String key, Integer pageNumber, Integer p
         // 2. Cập nhật nếu có dữ liệu mới
         if (productDTO.getProductName() != null) {
             product1.setProductName(productDTO.getProductName());
+        }
+
+        if (productDTO.getProductCode() != null) {
+            product1.setProductCode(productDTO.getProductCode());
         }
 
         if (productDTO.getDescription() != null) {

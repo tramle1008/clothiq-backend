@@ -19,8 +19,14 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private  Long productId;
-    @NotBlank
+
+    @NotBlank(message = "Product code không được trống")
+    @Column(nullable = false, unique = true)
+    private String productCode;
+
+    @NotBlank(message = "Product name không được trống")
     private String productName;
+
     private String description;
     private Integer quantity;
     private double discount;
@@ -31,14 +37,11 @@ public class Product {
     @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;
-//
-//    @ManyToOne
-//    @JoinColumn(name = "ower_id")
-//    private User user;
 
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch =  FetchType.EAGER)
     List<CartItem> products = new ArrayList<>();
 
     @OneToMany(mappedBy = "product",cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch =  FetchType.EAGER )
     private List<OrderItem> orderItems = new ArrayList<>();
+
 }

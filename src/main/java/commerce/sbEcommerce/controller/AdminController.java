@@ -5,7 +5,10 @@ import commerce.sbEcommerce.model.AppRole;
 import commerce.sbEcommerce.model.DeliveryStatus;
 import commerce.sbEcommerce.payload.AdminStatsDTO;
 import commerce.sbEcommerce.payload.OrderDTO;
+import commerce.sbEcommerce.payload.RevenueChartPointDTO;
+import commerce.sbEcommerce.payload.RevenueChartResponseDTO;
 import commerce.sbEcommerce.repository.OrderRepository;
+import commerce.sbEcommerce.repository.RevenueChartPointProjection;
 import commerce.sbEcommerce.repository.ProductRepository;
 import commerce.sbEcommerce.repository.UserRepository;
 import commerce.sbEcommerce.service.OrderService;
@@ -14,6 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -25,24 +31,65 @@ public class AdminController {
     @Autowired
     private OrderRepository orderRepository;
 
-     @Autowired
+    @Autowired
      private OrderService orderService;
     @GetMapping("/stats")
-    public ResponseEntity<AdminStatsDTO> getStatistics() {
+    public ResponseEntity<AdminStatsDTO> getStatistics(
+    ) {
         long totalUsers = userRepository.findByRoles_RoleName(AppRole.ROLE_USER).size();
         long totalProducts = productRepository.count();
         long totalOrders = orderRepository.count();
-        double totalRevenue = orderRepository.findTotalRevenue();
+        double currentMonthRevenue = orderRepository.findCurrentMonthRevenue();
         long pendingDeliveries = orderRepository.countPendingDeliveriesWithPayment();
 
         AdminStatsDTO stats = new AdminStatsDTO();
         stats.setTotalUsers(totalUsers);
         stats.setTotalProducts(totalProducts);
         stats.setTotalOrders(totalOrders);
-        stats.setTotalRevenue(totalRevenue);
+        stats.setRevenueThisMonth(currentMonthRevenue);
         stats.setPendingDeliveries(pendingDeliveries);
 
         return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/revenue/chart")
+    public ResponseEntity<RevenueChartResponseDTO> getRevenueChart(
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(defaultValue = "day") String groupBy
+    ) {
+        LocalDate now = LocalDate.now();
+        LocalDate effectiveFromDate = fromDate != null ? fromDate : LocalDate.of(now.getYear(), 1, 1);
+        LocalDate effectiveToDate = toDate != null ? toDate : LocalDate.of(now.getYear(), 12, 31);
+
+        if (effectiveFromDate.isAfter(effectiveToDate)) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String normalizedGroupBy = groupBy.toLowerCase();
+        List<RevenueChartPointProjection> rawPoints = switch (normalizedGroupBy) {
+            case "day" -> orderRepository.findRevenueChartByDay(effectiveFromDate, effectiveToDate);
+            case "month" -> orderRepository.findRevenueChartByMonth(effectiveFromDate, effectiveToDate);
+            case "year" -> orderRepository.findRevenueChartByYear(effectiveFromDate, effectiveToDate);
+            default -> null;
+        };
+
+        if (rawPoints == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<RevenueChartPointDTO> points = rawPoints.stream()
+                .map(point -> new RevenueChartPointDTO(point.getPeriod(), point.getRevenue()))
+                .toList();
+
+        RevenueChartResponseDTO response = new RevenueChartResponseDTO(
+                effectiveFromDate,
+                effectiveToDate,
+                normalizedGroupBy,
+                orderRepository.findTotalRevenue(effectiveFromDate, effectiveToDate),
+                points
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/pending")

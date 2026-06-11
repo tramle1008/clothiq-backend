@@ -96,6 +96,19 @@ public class ProductController {
         return new ResponseEntity<>(productService.getProductByKey(key, pageNumber, pageSize,sortBy,sortOrder), HttpStatus.OK);
     }
 
+    @GetMapping("/public/products/search")
+    public ResponseEntity<ProductResponse> searchProductsByCodeOrName(
+            @RequestParam(name = "key") String key,
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE_PRODUCT, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_BY_PRODUCTS, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_ORDER_TANG, required = false) String sortOrder) {
+        return new ResponseEntity<>(
+                productService.searchProductsByCodeOrName(key, pageNumber, pageSize, sortBy, sortOrder),
+                HttpStatus.OK
+        );
+    }
+
 
     @PutMapping("/admin/products/{productId}")
     public ResponseEntity<ProductDTO> updateProduct(@RequestBody ProductDTO product,@PathVariable Long productId){

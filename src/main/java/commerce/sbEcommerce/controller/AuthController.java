@@ -1,58 +1,58 @@
 package commerce.sbEcommerce.controller;
 
-
 import commerce.sbEcommerce.model.AppRole;
 import commerce.sbEcommerce.model.Role;
 import commerce.sbEcommerce.model.User;
-
 import commerce.sbEcommerce.repository.RoleRepository;
 import commerce.sbEcommerce.repository.UserRepository;
+import commerce.sbEcommerce.security.jwt.JwtUtils;
 import commerce.sbEcommerce.security.jwt.LoginRequest;
 import commerce.sbEcommerce.security.request.SignupRequest;
-import commerce.sbEcommerce.security.request.UpdateUserRequest;
 import commerce.sbEcommerce.security.response.MessageResponse;
 import commerce.sbEcommerce.security.response.UserInfoResponse;
 import commerce.sbEcommerce.security.services.UserDetailsImpl;
-import commerce.sbEcommerce.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
-import commerce.sbEcommerce.security.jwt.JwtUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    @Autowired
-    private JwtUtils jwtUtils;
+    private final JwtUtils jwtUtils;
+    private final AuthenticationManager authenticationManager;
+    private final UserRepository userRepository;
+    private final PasswordEncoder encoder;
+    private final RoleRepository roleRepository;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    public AuthController(JwtUtils jwtUtils,
+                          AuthenticationManager authenticationManager,
+                          UserRepository userRepository,
+                          PasswordEncoder encoder,
+                          RoleRepository roleRepository) {
+        this.jwtUtils = jwtUtils;
+        this.authenticationManager = authenticationManager;
+        this.userRepository = userRepository;
+        this.encoder = encoder;
+        this.roleRepository = roleRepository;
+    }
 
-    @Autowired
-    UserRepository userRepository;
-
-    @Autowired
-    PasswordEncoder encoder;
-
-    @Autowired
-    RoleRepository roleRepository;
-
-    @Autowired
-    UserService userService;
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
         Authentication authentication;
@@ -65,7 +65,7 @@ public class AuthController {
             );
         } catch (Exception e) {
             Map<String, Object> map = new HashMap<>();
-            map.put("message", "Mật khẩu sai");
+            map.put("message", "Sai tên đăng nhập hoặc mật khẩu");
             map.put("status", false);
             return new ResponseEntity<>(map, HttpStatus.UNAUTHORIZED);
         }
@@ -79,7 +79,6 @@ public class AuthController {
                 .map(item -> item.getAuthority())
                 .collect(Collectors.toList());
 
-        // Gửi JWT trong body chứ không phải cookie
         return ResponseEntity.ok(new UserInfoResponse(
                 userDetails.getId(),
                 userDetails.getUsername(),
@@ -89,82 +88,56 @@ public class AuthController {
         ));
     }
 
-
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody @Valid SignupRequest signupRequest) {
-
-        // Kiểm tra username đã tồn tại
         if (userRepository.existsByUserName(signupRequest.getUsername())) {
             return ResponseEntity
                     .badRequest()
-                    .body(new MessageResponse("Error: Tên đăng ký người dùng đã tồn tại"));
+                    .body(new MessageResponse("Error: Username is already taken"));
         }
 
-        // Kiểm tra email đã tồn tại (sửa lỗi dùng sai getUserName())
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
             return ResponseEntity
                     .badRequest()
-                    .body(new MessageResponse("Error: Email đăng ký đã tồn tại"));
+                    .body(new MessageResponse("Error: Email is already in use"));
         }
 
-        // Tạo user mới với mật khẩu đã mã hóa
+        Set<String> requestedRoles = signupRequest.getRole();
+        if (requestedRoles != null && !requestedRoles.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body(new MessageResponse("Error: Public signup cannot assign roles"));
+        }
+
+        Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
+                .orElseThrow(() -> new IllegalArgumentException("Error: ROLE_USER not found"));
+
         User user = new User(
                 signupRequest.getUsername(),
                 signupRequest.getEmail(),
                 encoder.encode(signupRequest.getPassword())
         );
-
-        Set<String> strRole = signupRequest.getRole();
-        Set<Role> roles = new HashSet<>();
-
-        // Nếu không gửi role => mặc định là ROLE_USER
-        if (strRole == null || strRole.isEmpty()) {
-            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                    .orElseThrow(() -> new IllegalArgumentException("Error: Role USER không tìm thấy"));
-            roles.add(userRole);
-        } else {
-            for (String roleStr : strRole) {
-                switch (roleStr.toLowerCase()) {
-                    case "admin":
-                        Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
-                                .orElseThrow(() -> new IllegalArgumentException("Error: Role ADMIN không tìm thấy"));
-                        roles.add(adminRole);
-                        break;
-                    case "deliver":
-                        Role deliverRole = roleRepository.findByRoleName(AppRole.ROLE_DELIVER)
-                                .orElseThrow(() -> new IllegalArgumentException("Error: Role ADMIN không tìm thấy"));
-                        roles.add(deliverRole);
-                        break;
-                    default:
-                        Role defaultRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                                .orElseThrow(() -> new IllegalArgumentException("Error: Role USER không tìm thấy"));
-                        roles.add(defaultRole);
-                }
-            }
-        }
-
-        user.setRoles(roles);
+        user.setRoles(Set.of(userRole));
         userRepository.save(user);
 
-        return ResponseEntity.ok(new MessageResponse("Đăng ký thành công"));
+        return ResponseEntity.ok(new MessageResponse("Signup successful"));
     }
 
-
     @GetMapping("/username")
-    public String currentUser(Authentication authentication){
-        if(authentication != null) {
+    public String currentUser(Authentication authentication) {
+        if (authentication != null) {
             return authentication.getName();
-        }else
-            return "null";
+        }
+        return "null";
     }
 
     @GetMapping("/user")
-    public ResponseEntity<?> getUserDetail(Authentication authentication, HttpServletRequest request){
+    public ResponseEntity<?> getUserDetail(Authentication authentication, HttpServletRequest request) {
         if (authentication == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng ký");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         }
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
                 .collect(Collectors.toList());
@@ -177,11 +150,6 @@ public class AuthController {
                 roles,
                 jwtToken
         );
-        return  ResponseEntity.ok().body(response);
+        return ResponseEntity.ok().body(response);
     }
-
-
-
-
-
 }

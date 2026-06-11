@@ -17,4 +17,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> , JpaSpe
             String description,
             Pageable pageable
     );
+
+    Page<Product> findByProductCodeContainingIgnoreCaseOrProductNameContainingIgnoreCase(
+            String productCode,
+            String productName,
+            Pageable pageable
+    );
 }

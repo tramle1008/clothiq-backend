@@ -9,6 +9,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,14 @@ public class JwtUtils {
 
     @Value("${jwt.secret}")
     private String jwtSecret;
+
+    private SecretKey key;
+
+    @PostConstruct
+    public void init() {
+        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+    }
+
     //Lấy JWT từ Header Authorization trong request
 
     public String getJWTFromHeader(HttpServletRequest request) {
@@ -48,13 +57,13 @@ public class JwtUtils {
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(new Date().getTime() + jwtExpirationMs))
-                .signWith(key())
+                .signWith(key)
                 .compact();
     }
 
     public String getUsernameFromToken(String token) {
         return Jwts.parser()
-                .verifyWith((SecretKey) key())
+                .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
@@ -63,15 +72,11 @@ public class JwtUtils {
     public String generateJwtToken(UserDetails userDetails) {
         return generateTokenFromUserName(userDetails.getUsername());
     }
-    public Key key() {
-
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
-    }
 
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parser()
-                    .verifyWith((SecretKey) key())
+                    .verifyWith(key)
                     .build()
                     .parseSignedClaims(authToken);
             return true;
