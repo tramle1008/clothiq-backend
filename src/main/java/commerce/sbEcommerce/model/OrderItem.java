@@ -20,7 +20,10 @@ public class OrderItem {
     private Long orderItemId;
 
     private Integer quantity;
+
+//    giảm giá tại thời điểm đặt hàng
     private double discount;
+//    giá sản phẩm tại thời điểm đặt hàng
     private double orderProductPrice;
 
     @ManyToOne

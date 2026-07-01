@@ -11,4 +11,3 @@ public class SbEcommerceApplication {
 	}
 }
 
-//java -jar target/sbEcommerce-0.0.1-SNAPSHOT.jar

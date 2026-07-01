@@ -21,6 +21,7 @@ public class AddressController {
 
     @Autowired
     AuthUtil authUtil;
+
     @PostMapping("/auth/user/addresses")
     public ResponseEntity<AddressDTO> createAddress(@Valid @RequestBody AddressDTO addressDTO){
         User user = authUtil.getCurrentUserEntity();
@@ -35,7 +36,6 @@ public class AddressController {
           return new ResponseEntity<>(addressDTOList, HttpStatus.OK);
     }
 
-//    get address user until
     @GetMapping("/auth/user/addresses")
     public ResponseEntity<List<AddressDTO>> getUserAddresses(){
         User user = authUtil.getCurrentUserEntity();

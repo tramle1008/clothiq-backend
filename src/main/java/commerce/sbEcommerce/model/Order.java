@@ -29,7 +29,6 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE})
     List<OrderItem> orderItemList = new ArrayList<>();
 
-
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 

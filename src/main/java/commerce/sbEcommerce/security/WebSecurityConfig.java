@@ -10,16 +10,18 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-//@EnableMethodSecurity // Uncomment if you want to use method-level security annotations like @PreAuthorize
+@EnableMethodSecurity // Uncomment if you want to use method-level security annotations like @PreAuthorize
 @EnableWebSecurity
 public class WebSecurityConfig {
 
@@ -69,22 +71,26 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",
-                                "/api/public/**",
-                                "/api/products/**",
-                                "/api/stores",
-                                "/api/stores/nearest",
-                                "/error",
-                                "/images/**",
-                                "/api/payments/sepapy-callback",
-                                "/api/orders/status/**",
-                                "/calljson",
-                                "/oauth2/**", // Allow access to OAuth2 endpoints
-                                "/login/oauth2/code/google" // Google OAuth2 callback URL
+                                new AntPathRequestMatcher("/api/auth/**"),
+                                new AntPathRequestMatcher("/api/public/**"),
+                                new AntPathRequestMatcher("/api/products/**"),
+                                new AntPathRequestMatcher("/api/stores"),
+                                new AntPathRequestMatcher("/api/stores/nearest"),
+                                new AntPathRequestMatcher("/error"),
+                                new AntPathRequestMatcher("/images/**"),
+                                new AntPathRequestMatcher("/api/payments/sepapy-callback"),
+                                new AntPathRequestMatcher("/api/orders/status/**"),
+                                new AntPathRequestMatcher("/calljson"),
+                                new AntPathRequestMatcher("/oauth2/**"),
+                                new AntPathRequestMatcher("/login/oauth2/code/google"),
+                                new AntPathRequestMatcher("/swagger-ui/**"),
+                                new AntPathRequestMatcher("/webjars/swagger-ui/**"),
+                                new AntPathRequestMatcher("/swagger-ui.html"),
+                                new AntPathRequestMatcher("/v3/api-docs/**")
                         ).permitAll()
-                        .requestMatchers("/api/payments/qr").authenticated()
-                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers("/api/deliver/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_DELIVER")
+                        .requestMatchers(new AntPathRequestMatcher("/api/payments/qr")).authenticated()
+                        .requestMatchers(new AntPathRequestMatcher("/api/admin/**")).hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(new AntPathRequestMatcher("/api/deliver/**")).hasAnyAuthority("ROLE_ADMIN", "ROLE_DELIVER")
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2 // Enable OAuth2 Login

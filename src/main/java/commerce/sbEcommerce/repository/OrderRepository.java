@@ -10,10 +10,13 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
+    ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+
     @Query("""
             SELECT COALESCE(SUM(o.totalAmount), 0)
             FROM Order o
@@ -23,7 +26,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     double findTotalRevenue(LocalDate fromDate, LocalDate toDate);
 
     default double findTotalRevenue() {
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(VIETNAM_ZONE);
         return findTotalRevenue(
                 LocalDate.of(now.getYear(), 1, 1),
                 LocalDate.of(now.getYear(), 12, 31)
@@ -31,7 +34,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     }
 
     default double findCurrentMonthRevenue() {
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(VIETNAM_ZONE);
         return findTotalRevenue(
                 now.withDayOfMonth(1),
                 now.withDayOfMonth(now.lengthOfMonth())

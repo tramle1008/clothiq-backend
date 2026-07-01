@@ -1,5 +1,6 @@
 package commerce.sbEcommerce.payload;
 
+import commerce.sbEcommerce.model.RecordStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,6 +11,6 @@ import lombok.NoArgsConstructor;
 public class CategoryDTO {
     private Long categoryID;
     private String categoryName;
-
+    private RecordStatus status;
 
 }

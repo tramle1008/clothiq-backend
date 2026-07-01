@@ -22,11 +22,6 @@ public class StoreBranchController {
         return new ResponseEntity<>(storeBranchService.getStores(), HttpStatus.OK);
     }
 
-//    @PostMapping("/stores/nearest")
-//    public ResponseEntity<NearestStoreResponse> findNearestStore(@Valid @RequestBody NearestStoreRequest request) {
-//        return new ResponseEntity<>(storeBranchService.findNearestStore(request), HttpStatus.OK);
-//    }
-
     @PostMapping("/admin/stores")
     public ResponseEntity<StoreBranchDTO> createStore(@Valid @RequestBody StoreBranchRequest request) {
         return new ResponseEntity<>(storeBranchService.createStore(request), HttpStatus.CREATED);

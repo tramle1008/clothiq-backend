@@ -12,6 +12,8 @@ import java.util.List;
 public class UserInfoResponse {
     private Long id;
     private String jwtToken;
+    private String accessToken;
+    private String refreshToken;
     private String userName;
     private String email;
     private String password;
@@ -43,6 +45,17 @@ public class UserInfoResponse {
         this.email = email;
         this.role = role;
         this.jwtToken = jwtToken;
+        this.accessToken = jwtToken;
+    }
+
+    public UserInfoResponse(Long id, String userName, String email, List<String> role, String accessToken, String refreshToken) {
+        this.id = id;
+        this.userName = userName;
+        this.email = email;
+        this.role = role;
+        this.jwtToken = accessToken;
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
     }
 
 

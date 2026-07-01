@@ -81,12 +81,15 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
             Authentication jwtAuthentication = new UsernamePasswordAuthenticationToken(
                     userDetails, null, userDetails.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(jwtAuthentication);
-            String jwt = jwtUtils.generateJwtToken(userDetails);
+            String accessToken = jwtUtils.generateAccessToken(userDetails);
+            String refreshToken = jwtUtils.generateRefreshToken(userDetails);
 
             String redirectUrl = UriComponentsBuilder
                     .fromUriString(resolveFrontendUrl())
                     .path("/oauth2/redirect")
-                    .queryParam("token", jwt)
+                    .queryParam("token", accessToken)
+                    .queryParam("accessToken", accessToken)
+                    .queryParam("refreshToken", refreshToken)
                     .build()
                     .toUriString();
             response.sendRedirect(redirectUrl);

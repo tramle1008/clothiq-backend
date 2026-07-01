@@ -1,5 +1,6 @@
 package commerce.sbEcommerce.payload;
 
+import commerce.sbEcommerce.model.RecordStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,7 +15,10 @@ public class ProductDTO {
     private String image;
     private String description;
     private Integer quantity;
-    private Double price;
+    private Double salePrice;
+    private Double costPrice;
     private Double discount;
-    private double specialPrice;
+    private RecordStatus status;
+    private Long categoryId;
+
 }

@@ -2,12 +2,14 @@ package commerce.sbEcommerce.controller;
 
 import commerce.sbEcommerce.model.Cart;
 import commerce.sbEcommerce.payload.CartDTO;
+import commerce.sbEcommerce.payload.CartQuantityRequest;
 import commerce.sbEcommerce.repository.CartRepository;
 import commerce.sbEcommerce.service.CartService;
 import commerce.sbEcommerce.util.AuthUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -62,6 +64,16 @@ public class CartController {
         CartDTO cartDTO = cartService.updateProductQuantityInCart(productId, operation.equalsIgnoreCase("delete") ? -1 : 1 );
         return  new ResponseEntity<CartDTO>(cartDTO, HttpStatus.OK);
     }
+
+    @PutMapping("/auth/cart/{productId}/quantity")
+    public ResponseEntity<CartDTO> setCartProductQuantity(
+            @PathVariable Long productId,
+            @Valid @RequestBody CartQuantityRequest request
+    ) {
+        CartDTO cartDTO = cartService.setProductQuantityInCart(productId, request.getQuantity());
+        return new ResponseEntity<>(cartDTO, HttpStatus.OK);
+    }
+
 
     @DeleteMapping("/auth/user/cart/product/{productId}")
     public ResponseEntity<String> deleteProductFromCart(

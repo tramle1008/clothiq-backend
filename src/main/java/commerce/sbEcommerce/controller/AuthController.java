@@ -7,10 +7,12 @@ import commerce.sbEcommerce.repository.RoleRepository;
 import commerce.sbEcommerce.repository.UserRepository;
 import commerce.sbEcommerce.security.jwt.JwtUtils;
 import commerce.sbEcommerce.security.jwt.LoginRequest;
+import commerce.sbEcommerce.security.jwt.RefreshTokenRequest;
 import commerce.sbEcommerce.security.request.SignupRequest;
 import commerce.sbEcommerce.security.response.MessageResponse;
 import commerce.sbEcommerce.security.response.UserInfoResponse;
 import commerce.sbEcommerce.security.services.UserDetailsImpl;
+import commerce.sbEcommerce.security.services.UserDetailsServiceIml;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -40,17 +42,20 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder encoder;
     private final RoleRepository roleRepository;
+    private final UserDetailsServiceIml userDetailsService;
 
     public AuthController(JwtUtils jwtUtils,
                           AuthenticationManager authenticationManager,
                           UserRepository userRepository,
                           PasswordEncoder encoder,
-                          RoleRepository roleRepository) {
+                          RoleRepository roleRepository,
+                          UserDetailsServiceIml userDetailsService) {
         this.jwtUtils = jwtUtils;
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.encoder = encoder;
         this.roleRepository = roleRepository;
+        this.userDetailsService = userDetailsService;
     }
 
     @PostMapping("/signin")
@@ -73,7 +78,8 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        String jwtToken = jwtUtils.generateJwtToken(userDetails);
+        String accessToken = jwtUtils.generateAccessToken(userDetails);
+        String refreshToken = jwtUtils.generateRefreshToken(userDetails);
 
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
@@ -84,7 +90,39 @@ public class AuthController {
                 userDetails.getUsername(),
                 userDetails.getEmail(),
                 roles,
-                jwtToken
+                accessToken,
+                refreshToken
+        ));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+        String refreshToken = refreshTokenRequest.getRefreshToken();
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Refresh token is required"));
+        }
+
+        if (!jwtUtils.validateRefreshToken(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new MessageResponse("Refresh token is invalid or expired"));
+        }
+
+        String username = jwtUtils.getUsernameFromToken(refreshToken);
+        UserDetailsImpl userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(username);
+        String newAccessToken = jwtUtils.generateAccessToken(userDetails);
+        String newRefreshToken = jwtUtils.generateRefreshToken(userDetails);
+
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(item -> item.getAuthority())
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(new UserInfoResponse(
+                userDetails.getId(),
+                userDetails.getUsername(),
+                userDetails.getEmail(),
+                roles,
+                newAccessToken,
+                newRefreshToken
         ));
     }
 

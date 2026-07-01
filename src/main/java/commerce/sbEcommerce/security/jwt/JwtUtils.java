@@ -20,15 +20,20 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.util.WebUtils;
 
 import javax.crypto.SecretKey;
-import java.security.Key;
 import java.util.Date;
 
 @Component
 public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
+    private static final String TOKEN_TYPE_CLAIM = "tokenType";
+    private static final String ACCESS_TOKEN_TYPE = "access";
+    private static final String REFRESH_TOKEN_TYPE = "refresh";
 
-    @Value("${jwt.expiration}")
-    private int jwtExpirationMs;
+    @Value("${jwt.expiration.access}")
+    private long accessTokenExpirationMs;
+
+    @Value("${jwt.expiration.refresh}")
+    private long refreshTokenExpirationMs;
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -52,11 +57,12 @@ public class JwtUtils {
     }
 
 
-    public String generateTokenFromUserName(String username) {
+    private String generateTokenFromUserName(String username, String tokenType, long expirationMs) {
         return Jwts.builder()
                 .subject(username)
+                .claim(TOKEN_TYPE_CLAIM, tokenType)
                 .issuedAt(new Date())
-                .expiration(new Date(new Date().getTime() + jwtExpirationMs))
+                .expiration(new Date(new Date().getTime() + expirationMs))
                 .signWith(key)
                 .compact();
     }
@@ -69,17 +75,27 @@ public class JwtUtils {
                 .getPayload()
                 .getSubject();
     }
-    public String generateJwtToken(UserDetails userDetails) {
-        return generateTokenFromUserName(userDetails.getUsername());
+    public String generateAccessToken(UserDetails userDetails) {
+        return generateTokenFromUserName(userDetails.getUsername(), ACCESS_TOKEN_TYPE, accessTokenExpirationMs);
     }
 
-    public boolean validateJwtToken(String authToken) {
+    public String generateRefreshToken(UserDetails userDetails) {
+        return generateTokenFromUserName(userDetails.getUsername(), REFRESH_TOKEN_TYPE, refreshTokenExpirationMs);
+    }
+
+    public String generateJwtToken(UserDetails userDetails) {
+        return generateAccessToken(userDetails);
+    }
+
+    private boolean validateJwtToken(String authToken, String expectedTokenType) {
         try {
-            Jwts.parser()
+            String tokenType = Jwts.parser()
                     .verifyWith(key)
                     .build()
-                    .parseSignedClaims(authToken);
-            return true;
+                    .parseSignedClaims(authToken)
+                    .getPayload()
+                    .get(TOKEN_TYPE_CLAIM, String.class);
+            return expectedTokenType.equals(tokenType);
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT token: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
@@ -90,5 +106,17 @@ public class JwtUtils {
             logger.error("JWT claims string is empty: {}", e.getMessage());
         }
         return false;
+    }
+
+    public boolean validateAccessToken(String authToken) {
+        return validateJwtToken(authToken, ACCESS_TOKEN_TYPE);
+    }
+
+    public boolean validateRefreshToken(String authToken) {
+        return validateJwtToken(authToken, REFRESH_TOKEN_TYPE);
+    }
+
+    public boolean validateJwtToken(String authToken) {
+        return validateAccessToken(authToken);
     }
 }

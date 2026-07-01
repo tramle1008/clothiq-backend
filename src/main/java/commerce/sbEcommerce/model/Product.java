@@ -29,10 +29,15 @@ public class Product {
 
     private String description;
     private Integer quantity;
-    private double discount;
     private String image;
-    private double price;
-    private double specialPrice;
+//    giá bán ra chưa xét giảm giá
+    private Double salePrice;
+//    giá nhập kho
+    private Double costPrice;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RecordStatus status = RecordStatus.ACTIVE;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -43,5 +48,9 @@ public class Product {
 
     @OneToMany(mappedBy = "product",cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch =  FetchType.EAGER )
     private List<OrderItem> orderItems = new ArrayList<>();
+
+    @ManyToMany(mappedBy = "products", fetch = FetchType.EAGER)
+    @ToString.Exclude
+    private List<Discount> discounts = new ArrayList<>();
 
 }

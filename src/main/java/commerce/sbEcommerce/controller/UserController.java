@@ -47,7 +47,8 @@ public class UserController {
 
         User updatedUser = authUtil.getCurrentUserEntity();
         UserDetailsImpl userDetails = UserDetailsImpl.build(updatedUser);
-        String newJwtToken = jwtUtils.generateJwtToken(userDetails);
+        String newAccessToken = jwtUtils.generateAccessToken(userDetails);
+        String newRefreshToken = jwtUtils.generateRefreshToken(userDetails);
 
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(a -> a.getAuthority())
@@ -58,7 +59,8 @@ public class UserController {
                 updatedUser.getUserName(),
                 updatedUser.getEmail(),
                 roles,
-                newJwtToken
+                newAccessToken,
+                newRefreshToken
         ));
     }
 

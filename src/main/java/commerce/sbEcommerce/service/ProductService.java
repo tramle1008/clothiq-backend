@@ -1,10 +1,12 @@
 package commerce.sbEcommerce.service;
 
+import commerce.sbEcommerce.model.RecordStatus;
 import commerce.sbEcommerce.payload.ProductDTO;
 import commerce.sbEcommerce.payload.ProductResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 public interface ProductService {
 
@@ -12,13 +14,16 @@ public interface ProductService {
     ProductDTO addProduct(Long categoryId, ProductDTO productDTO, MultipartFile image) throws IOException;
 
     ProductResponse getAllProduct(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId);
+    ProductResponse getAllProductForAdmin(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId, List<RecordStatus> statuses);
 
     ProductResponse getProductByKey(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
 
     ProductResponse searchProductsByCodeOrName(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
+    ProductResponse searchProductsByCodeOrNameForAdmin(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, List<RecordStatus> statuses);
 
 
     ProductResponse getProductByCategory(Long categoryId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
+    ProductResponse getProductByCategoryForAdmin(Long categoryId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, List<RecordStatus> statuses);
 
 
     ProductDTO updateProduct(ProductDTO product, Long productId);

@@ -2,9 +2,9 @@ package commerce.sbEcommerce.controller;
 
 import commerce.sbEcommerce.config.AppConstants;
 import commerce.sbEcommerce.model.AppRole;
-import commerce.sbEcommerce.model.DeliveryStatus;
 import commerce.sbEcommerce.payload.AdminStatsDTO;
 import commerce.sbEcommerce.payload.OrderDTO;
+import commerce.sbEcommerce.payload.OrderSearchCriteria;
 import commerce.sbEcommerce.payload.RevenueChartPointDTO;
 import commerce.sbEcommerce.payload.RevenueChartResponseDTO;
 import commerce.sbEcommerce.repository.OrderRepository;
@@ -17,13 +17,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -58,7 +62,7 @@ public class AdminController {
             @RequestParam(required = false) LocalDate toDate,
             @RequestParam(defaultValue = "day") String groupBy
     ) {
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(VIETNAM_ZONE);
         LocalDate effectiveFromDate = fromDate != null ? fromDate : LocalDate.of(now.getYear(), 1, 1);
         LocalDate effectiveToDate = toDate != null ? toDate : LocalDate.of(now.getYear(), 12, 31);
 
@@ -97,9 +101,10 @@ public class AdminController {
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE_PENDING) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_BY_ORDERED) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_ORDER_TANG) String sortOrder
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_ORDER_GIAM) String sortOrder,
+            @Valid @ModelAttribute OrderSearchCriteria criteria
     ){
-        return new ResponseEntity<>(orderService.getPENDING(pageNumber, pageSize,sortBy,sortOrder), HttpStatus.OK);
+        return new ResponseEntity<>(orderService.getPENDING(pageNumber, pageSize, sortBy, sortOrder, criteria), HttpStatus.OK);
     }
 
     @GetMapping("/shipped")
@@ -107,9 +112,10 @@ public class AdminController {
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE_PENDING) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_BY_ORDERED) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_ORDER_TANG) String sortOrder
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_ORDER_GIAM) String sortOrder,
+            @Valid @ModelAttribute OrderSearchCriteria criteria
     ){
-        return new ResponseEntity<>(orderService.getPENDING(pageNumber, pageSize,sortBy,sortOrder), HttpStatus.OK);
+        return new ResponseEntity<>(orderService.getOrderSHIPPED(pageNumber, pageSize, sortBy, sortOrder, criteria), HttpStatus.OK);
     }
 
 
@@ -119,11 +125,10 @@ public class AdminController {
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE_ORDER) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_BY_ORDERED) String sortBy,
             @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_ORDER_TANG) String sortOrder,
-            @RequestParam(required = false) DeliveryStatus status,
-            @RequestParam(required = false) String key
+            @Valid @ModelAttribute OrderSearchCriteria criteria
     ) {
         return new ResponseEntity<>(
-                orderService.getPagedOrderDetails(pageNumber, pageSize, sortBy, sortOrder, status, key),
+                orderService.getPagedOrderDetails(pageNumber, pageSize, sortBy, sortOrder, criteria),
                 HttpStatus.OK
         );
     }

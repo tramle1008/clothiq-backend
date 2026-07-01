@@ -1,6 +1,11 @@
 spring:
   application:
     name: sbEcommerce
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
   datasource:
     url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:clothiq}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
     username: ${MYSQLUSER:root}
@@ -48,7 +53,9 @@ system:
     password: ${SYSTEM_PASSWORD:12345678}
 jwt:
   secret: ${SECRET_KEY}
-  expiration: 86400000
+  expiration:
+    access: 86400000
+    refresh: 604800000
 logging:
   level:
     commerce.sbEcommerce.security.jwt: DEBUG

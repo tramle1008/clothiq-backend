@@ -36,7 +36,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         logger.debug("AuthTokenFilter called for URI: {}", request.getRequestURI());
 
         try {
-            //  Sửa lại: lấy JWT từ header, không dùng cookie nữa
+            //   lấy JWT từ header, không dùng cookie nữa
             String jwt = jwtUtils.getJWTFromHeader(request);
             logger.debug("JWT extracted: {}", jwt);
 
