@@ -1,6 +1,7 @@
 package commerce.sbEcommerce.payload;
 
-import commerce.sbEcommerce.model.*;
+import commerce.sbEcommerce.model.DeliveryStatus;
+import commerce.sbEcommerce.model.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,6 +18,7 @@ public class OrderDTO {
     private List<OrderItemDTO> orderItemList;
     private PaymentStatus paymentStatus;
     private DeliveryStatus deliveryStatus;
+    private String paymentMethod;
     private PaymentDTO payment;
     private LocalDate dateOrder;
     private Double totalAmount;

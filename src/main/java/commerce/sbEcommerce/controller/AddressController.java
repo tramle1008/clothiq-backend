@@ -2,6 +2,8 @@ package commerce.sbEcommerce.controller;
 
 import commerce.sbEcommerce.model.User;
 import commerce.sbEcommerce.payload.AddressDTO;
+import commerce.sbEcommerce.payload.ProvinceDTO;
+import commerce.sbEcommerce.payload.WardDTO;
 import commerce.sbEcommerce.service.AddressService;
 import commerce.sbEcommerce.util.AuthUtil;
 import jakarta.validation.Valid;
@@ -21,6 +23,18 @@ public class AddressController {
 
     @Autowired
     AuthUtil authUtil;
+
+    @GetMapping("/public/provinces")
+    public ResponseEntity<List<ProvinceDTO>> getProvinces() {
+        List<ProvinceDTO> provinces = addressService.getProvinces();
+        return new ResponseEntity<>(provinces, HttpStatus.OK);
+    }
+
+    @GetMapping("/public/{provinceId}/wards")
+    public ResponseEntity<List<WardDTO>> getWardsByProvince(@PathVariable("provinceId") Long provinceId) {
+        List<WardDTO> wards = addressService.getWardsByProvince(provinceId);
+        return new ResponseEntity<>(wards, HttpStatus.OK);
+    }
 
     @PostMapping("/auth/user/addresses")
     public ResponseEntity<AddressDTO> createAddress(@Valid @RequestBody AddressDTO addressDTO){

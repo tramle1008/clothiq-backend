@@ -35,4 +35,7 @@ public class StoreBranch {
 
     @Column(nullable = false)
     private Double longitude;
+
+    @Column(nullable = false)
+    private String phoneNumber;
 }

@@ -20,4 +20,7 @@ public class StoreBranchRequest {
 
     @NotBlank(message = "Embed URL is required")
     private String embedUrl;
+
+    @NotBlank
+    private String phoneNumber;
 }

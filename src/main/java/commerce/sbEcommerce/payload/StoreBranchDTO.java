@@ -15,4 +15,5 @@ public class StoreBranchDTO {
     private String embedUrl;
     private Double latitude;
     private Double longitude;
+    private String phoneNumber;
 }

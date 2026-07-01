@@ -1,111 +1,175 @@
 package commerce.sbEcommerce.service;
 
+import commerce.sbEcommerce.exceptioons.APIException;
 import commerce.sbEcommerce.exceptioons.ResourceNotFoundException;
 import commerce.sbEcommerce.exceptioons.UnauthorizedException;
 import commerce.sbEcommerce.model.Address;
-import commerce.sbEcommerce.model.Product;
+import commerce.sbEcommerce.model.Province;
 import commerce.sbEcommerce.model.User;
+import commerce.sbEcommerce.model.Ward;
 import commerce.sbEcommerce.payload.AddressDTO;
-import commerce.sbEcommerce.payload.ProductDTO;
+import commerce.sbEcommerce.payload.ProvinceDTO;
+import commerce.sbEcommerce.payload.WardDTO;
 import commerce.sbEcommerce.repository.AddressRepository;
+import commerce.sbEcommerce.repository.ProvinceRepository;
+import commerce.sbEcommerce.repository.WardRepository;
 import commerce.sbEcommerce.util.AuthUtil;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
-public class AddressIml implements AddressService{
-    @Autowired
-    ModelMapper modelMapper;
-
+public class AddressIml implements AddressService {
     @Autowired
     AddressRepository addressRepository;
 
     @Autowired
+    WardRepository wardRepository;
+
+    @Autowired
+    ProvinceRepository provinceRepository;
+
+    @Autowired
     AuthUtil authUtil;
+
     @Override
     public AddressDTO createAddress(AddressDTO addressDTO, User user) {
-        Address address = modelMapper.map(addressDTO, Address.class);
+        Ward ward = getWard(addressDTO.getWardId());
+
+        Address address = new Address();
+        address.setWard(ward);
+        address.setDetail(addressDTO.getDetail());
+        address.setPhoneNumber(addressDTO.getPhoneNumber());
+        address.setUser(user);
+
         List<Address> addressList = user.getAddressList();
         addressList.add(address);
         user.setAddressList(addressList);
 
-        address.setUser(user);
         Address saveAddress = addressRepository.save(address);
-        return modelMapper.map(saveAddress, AddressDTO.class);
+        return mapToDTO(saveAddress);
     }
 
     @Override
     public List<AddressDTO> getAdresses() {
         List<Address> addressList = addressRepository.findAll();
-        List<AddressDTO> addressDTOLisst = addressList.stream().map(address -> modelMapper.map(address, AddressDTO.class))
+        return addressList.stream()
+                .map(this::mapToDTO)
                 .collect(Collectors.toList());
-
-        return addressDTOLisst;
     }
 
     @Override
     public List<AddressDTO> getUserAddresses(User user) {
         List<Address> addressList = addressRepository.findByUser(user);
-        List<AddressDTO> addressDTOList = addressList.stream().map(a -> modelMapper.map(a, AddressDTO.class))
+        return addressList.stream()
+                .map(this::mapToDTO)
                 .collect(Collectors.toList());
-        return addressDTOList;
     }
 
     @Override
     public AddressDTO updateUserAddress(AddressDTO addressDTO, Long addressId) {
         User currentUser = authUtil.getCurrentUserEntity();
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new ResourceNotFoundException("address", "address", addressId));
+                .orElseThrow(() -> new ResourceNotFoundException("address", "addressId", addressId));
 
-        // Kiểm tra xem địa chỉ có thuộc về user hiện tại không
         if (!address.getUser().getUserId().equals(currentUser.getUserId())) {
-            throw new UnauthorizedException("You are not allowed to delete this address.");
-        }
-        // 2. Cập nhật nếu có dữ liệu mới
-        if (addressDTO.getDistrict() != null) {
-            address.setDistrict(addressDTO.getDistrict());
+            throw new UnauthorizedException("You are not allowed to update this address.");
         }
 
-        if (addressDTO.getProvince() != null) {
-            address.setProvince(addressDTO.getProvince());
+        if (addressDTO.getWardId() != null) {
+            address.setWard(getWard(addressDTO.getWardId()));
         }
 
-        if (addressDTO.getWard() != null) {
-            address.setWard(addressDTO.getWard());
+        if (addressDTO.getDetail() != null) {
+            address.setDetail(addressDTO.getDetail());
         }
-
 
         if (addressDTO.getPhoneNumber() != null) {
             address.setPhoneNumber(addressDTO.getPhoneNumber());
         }
 
-
-
-        // 3. Lưu lại
         Address saveAddress = addressRepository.save(address);
-
-        // 4. Trả về kết quả
-        return modelMapper.map(saveAddress, AddressDTO.class);
+        return mapToDTO(saveAddress);
     }
 
     @Override
     public AddressDTO deleteUserAddress(Long addressId) {
         User currentUser = authUtil.getCurrentUserEntity();
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new ResourceNotFoundException("address", "address", addressId));
-        // Kiểm tra xem địa chỉ có thuộc về user hiện tại không
+                .orElseThrow(() -> new ResourceNotFoundException("address", "addressId", addressId));
+
         if (!address.getUser().getUserId().equals(currentUser.getUserId())) {
             throw new UnauthorizedException("You are not allowed to delete this address.");
         }
-     addressRepository.delete(address);
 
-        return modelMapper.map(address, AddressDTO.class);
+        addressRepository.delete(address);
+        return mapToDTO(address);
     }
 
+    @Override
+    public List<ProvinceDTO> getProvinces() {
+        return provinceRepository.findAll().stream()
+                .map(this::mapProvinceToDTO)
+                .collect(Collectors.toList());
+    }
 
+    @Override
+    public List<WardDTO> getWardsByProvince(Long provinceId) {
+        provinceRepository.findById(provinceId)
+                .orElseThrow(() -> new ResourceNotFoundException("province", "provinceId", provinceId));
+
+        return wardRepository.findByProvinceProvinceId(provinceId).stream()
+                .map(this::mapWardToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private Ward getWard(Long wardId) {
+        if (wardId == null) {
+            throw new APIException("wardId is required");
+        }
+
+        return wardRepository.findById(wardId)
+                .orElseThrow(() -> new ResourceNotFoundException("ward", "wardId", wardId));
+    }
+
+    private AddressDTO mapToDTO(Address address) {
+        AddressDTO addressDTO = new AddressDTO();
+        addressDTO.setAddressId(address.getAddressId());
+        addressDTO.setDetail(address.getDetail());
+        addressDTO.setPhoneNumber(address.getPhoneNumber());
+
+        Ward ward = address.getWard();
+        if (ward != null) {
+            addressDTO.setWardId(ward.getWardId());
+            addressDTO.setWardName(ward.getName());
+
+            if (ward.getProvince() != null) {
+                addressDTO.setProvinceId(ward.getProvince().getProvinceId());
+                addressDTO.setProvinceName(ward.getProvince().getName());
+            }
+        }
+
+        return addressDTO;
+    }
+
+    private ProvinceDTO mapProvinceToDTO(Province province) {
+        ProvinceDTO provinceDTO = new ProvinceDTO();
+        provinceDTO.setProvinceId(province.getProvinceId());
+        provinceDTO.setName(province.getName());
+        return provinceDTO;
+    }
+
+    private WardDTO mapWardToDTO(Ward ward) {
+        WardDTO wardDTO = new WardDTO();
+        wardDTO.setWardId(ward.getWardId());
+        wardDTO.setName(ward.getName());
+
+        if (ward.getProvince() != null) {
+            wardDTO.setProvinceId(ward.getProvince().getProvinceId());
+        }
+
+        return wardDTO;
+    }
 }

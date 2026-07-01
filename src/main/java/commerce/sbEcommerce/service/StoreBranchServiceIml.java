@@ -55,6 +55,7 @@ public class StoreBranchServiceIml implements StoreBranchService {
         storeBranch.setEmbedUrl(request.getEmbedUrl().trim());
         storeBranch.setLatitude(0.0);
         storeBranch.setLongitude(0.0);
+        storeBranch.setPhoneNumber(request.getPhoneNumber().trim());
     }
 
     private StoreBranchDTO toDTO(StoreBranch storeBranch) {
@@ -65,7 +66,8 @@ public class StoreBranchServiceIml implements StoreBranchService {
                 storeBranch.getMapUrl(),
                 storeBranch.getEmbedUrl(),
                 storeBranch.getLatitude(),
-                storeBranch.getLongitude()
+                storeBranch.getLongitude(),
+                storeBranch.getPhoneNumber()
         );
     }
 }
