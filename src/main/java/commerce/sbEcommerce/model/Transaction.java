@@ -13,7 +13,6 @@ import java.sql.Timestamp;
 @Entity
 @Table(name = "transactions")
 public class Transaction {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,6 +34,4 @@ public class Transaction {
     private String body;
     @OneToOne(mappedBy = "transaction")
     private Payment payment;
-
-
 }

@@ -187,7 +187,7 @@ public class CartServiceIml implements CartService {
         String productName = cartItem.getProduct().getProductName();
         cart.getCartItems().removeIf(item -> item.getCartItemId().equals(cartItem.getCartItemId()));
         cartItemRepository.deleteCartItemByProductIdAndCartId(cartId, productId);
-        return "Sáº£n pháº©m " + productName + " Ä‘Ã£ bá»‹ xÃ³a khá»i giá» hÃ ng";
+        return "Sản phẩm " + productName + " đã được xóa khỏi giỏ hàng";
     }
 
     private double getCurrentDiscountPercent(Product product) {

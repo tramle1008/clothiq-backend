@@ -5,8 +5,10 @@ import commerce.sbEcommerce.exceptioons.ResourceNotFoundException;
 import commerce.sbEcommerce.model.Category;
 import commerce.sbEcommerce.model.RecordStatus;
 import commerce.sbEcommerce.payload.CategoryDTO;
+import commerce.sbEcommerce.payload.CategoryProductCount;
 import commerce.sbEcommerce.payload.CategoryResponse;
 import commerce.sbEcommerce.repository.CategoryRepository;
+import commerce.sbEcommerce.repository.ProductRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -17,12 +19,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +30,9 @@ public class CategoryServiceIml implements CategoryService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    private ProductRepository productRepository;
 
     @Override
     public CategoryResponse getAllCategories(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
@@ -82,6 +82,10 @@ public class CategoryServiceIml implements CategoryService {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
         category.setStatus(RecordStatus.DELETED);
+        category.getProducts()
+                .forEach(product ->
+                        product.setStatus(RecordStatus.DELETED));
+
         categoryRepository.save(category);
         return "Category id " + categoryId + " deleted successful!";
     }
@@ -112,6 +116,7 @@ public class CategoryServiceIml implements CategoryService {
         return searchCategoriesByStatuses(keyword, limit, resolveStatuses(statuses, true));
     }
 
+
     private CategoryResponse getCategories(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, List<RecordStatus> statuses) {
         Sort sortByOrder = sortOrder.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
@@ -121,9 +126,30 @@ public class CategoryServiceIml implements CategoryService {
         Specification<Category> spec = (root, query, criteriaBuilder) -> root.get("status").in(statuses);
         Page<Category> categoryPage = categoryRepository.findAll(spec, pageDetails);
 
+        List<Long> categoryIds = categoryPage.getContent().stream()
+                .map(Category::getCategoryId)
+                .toList();
+        //chỉ tính ở trạng thái Active
+        List<CategoryProductCount> counts = productRepository.countProductsByCategory(categoryIds, RecordStatus.ACTIVE);
+
+        Map<Long, Long> productCountMap = counts.stream()
+                .collect(Collectors.toMap(
+                        CategoryProductCount::getCategoryId,
+                        CategoryProductCount::getProductCount
+                ));
+
+
         List<CategoryDTO> categoryDTOS = categoryPage.getContent().stream()
-                .map(category -> modelMapper.map(category, CategoryDTO.class))
-                .collect(Collectors.toList());
+                .map(category -> {
+                    CategoryDTO dto = modelMapper.map(category, CategoryDTO.class);
+
+                    dto.setProductCount(
+                            productCountMap.getOrDefault(category.getCategoryId(), 0L)
+                    );
+
+                    return dto;
+                })
+                .toList();
 
         CategoryResponse categoryResponse = new CategoryResponse();
         categoryResponse.setContent(categoryDTOS);

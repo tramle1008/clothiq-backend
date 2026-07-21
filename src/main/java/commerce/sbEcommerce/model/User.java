@@ -69,5 +69,7 @@ public class User {
             orphanRemoval = true)
     private Cart cart;
 
-
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<ProductReview> productReviews = new ArrayList<>();
 }

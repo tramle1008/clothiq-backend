@@ -13,13 +13,13 @@ public interface ProductService {
 
     ProductDTO addProduct(Long categoryId, ProductDTO productDTO, MultipartFile image) throws IOException;
 
-    ProductResponse getAllProduct(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId);
-    ProductResponse getAllProductForAdmin(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId, List<RecordStatus> statuses);
+    ProductResponse getAllProduct(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId, Double minPrice, Double maxPrice);
+    ProductResponse getAllProductForAdmin(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId, Double minPrice, Double maxPrice, List<RecordStatus> statuses);
 
     ProductResponse getProductByKey(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
 
-    ProductResponse searchProductsByCodeOrName(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
-    ProductResponse searchProductsByCodeOrNameForAdmin(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, List<RecordStatus> statuses);
+    ProductResponse searchProductsByCodeOrName(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, Double minPrice, Double maxPrice);
+    ProductResponse searchProductsByCodeOrNameForAdmin(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, Double minPrice, Double maxPrice, List<RecordStatus> statuses);
 
 
     ProductResponse getProductByCategory(Long categoryId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);

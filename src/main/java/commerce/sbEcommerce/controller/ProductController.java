@@ -75,8 +75,10 @@ public class ProductController {
             @RequestParam(name =  "sortOrder" , defaultValue = AppConstants.SORT_ORDER_TANG, required = false ) String sortOrder,
             @RequestParam(name = "key", required = false) String key,
             @RequestParam(name = "categoryId", required = false) Integer categoryId,
+            @RequestParam(name = "minPrice", required = false) Double minPrice,
+            @RequestParam(name = "maxPrice", required = false) Double maxPrice,
             @RequestParam(name = "statuses", required = false) List<RecordStatus> statuses){
-        return new ResponseEntity<>(productService.getAllProductForAdmin(pageNumber, pageSize,sortBy,sortOrder ,key, categoryId, statuses),HttpStatus.OK);
+        return new ResponseEntity<>(productService.getAllProductForAdmin(pageNumber, pageSize,sortBy,sortOrder ,key, categoryId, minPrice, maxPrice, statuses),HttpStatus.OK);
     }
 
 
@@ -89,8 +91,10 @@ public class ProductController {
             @RequestParam(name =  "sortBy", defaultValue = AppConstants.SORT_BY_PRODUCTS, required = false ) String sortBy ,
             @RequestParam(name =  "sortOrder" , defaultValue = AppConstants.SORT_ORDER_TANG, required = false ) String sortOrder,
             @RequestParam(name = "key", required = false) String key,
-            @RequestParam(name = "categoryId", required = false) Integer categoryId){
-        return new ResponseEntity<>(productService.getAllProduct(pageNumber, pageSize,sortBy,sortOrder ,key, categoryId ),HttpStatus.OK);
+            @RequestParam(name = "categoryId", required = false) Integer categoryId,
+            @RequestParam(name = "minPrice", required = false) Double minPrice,
+            @RequestParam(name = "maxPrice", required = false) Double maxPrice){
+        return new ResponseEntity<>(productService.getAllProduct(pageNumber, pageSize,sortBy,sortOrder ,key, categoryId, minPrice, maxPrice ),HttpStatus.OK);
     }
 
     @GetMapping("/products/{productId}")
@@ -126,9 +130,11 @@ public class ProductController {
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE_PRODUCT, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_BY_PRODUCTS, required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_ORDER_TANG, required = false) String sortOrder) {
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_ORDER_TANG, required = false) String sortOrder,
+            @RequestParam(name = "minPrice", required = false) Double minPrice,
+            @RequestParam(name = "maxPrice", required = false) Double maxPrice) {
         return new ResponseEntity<>(
-                productService.searchProductsByCodeOrName(key, pageNumber, pageSize, sortBy, sortOrder),
+                productService.searchProductsByCodeOrName(key, pageNumber, pageSize, sortBy, sortOrder, minPrice, maxPrice),
                 HttpStatus.OK
         );
     }
@@ -141,9 +147,11 @@ public class ProductController {
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE_PRODUCT, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_BY_PRODUCTS, required = false) String sortBy,
             @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_ORDER_TANG, required = false) String sortOrder,
+            @RequestParam(name = "minPrice", required = false) Double minPrice,
+            @RequestParam(name = "maxPrice", required = false) Double maxPrice,
             @RequestParam(name = "statuses", required = false) List<RecordStatus> statuses) {
         return new ResponseEntity<>(
-                productService.searchProductsByCodeOrNameForAdmin(key, pageNumber, pageSize, sortBy, sortOrder, statuses),
+                productService.searchProductsByCodeOrNameForAdmin(key, pageNumber, pageSize, sortBy, sortOrder, minPrice, maxPrice, statuses),
                 HttpStatus.OK
         );
     }

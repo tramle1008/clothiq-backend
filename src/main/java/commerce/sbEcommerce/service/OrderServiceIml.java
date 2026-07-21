@@ -8,7 +8,9 @@ import commerce.sbEcommerce.payload.OrderSearchCriteria;
 import commerce.sbEcommerce.payload.QRPaymentResponseDTO;
 import commerce.sbEcommerce.repository.*;
 import commerce.sbEcommerce.util.AuthUtil;
+import jakarta.annotation.PostConstruct;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.PropertyMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -55,6 +57,19 @@ public class OrderServiceIml implements OrderService {
     TransactionRepository transactionRepository;
     @Autowired
     AuthUtil authUtil;
+
+    @PostConstruct
+    public void setupModelMapper() {
+        modelMapper.addMappings(new PropertyMap<Address, AddressDTO>() {
+            @Override
+            protected void configure() {
+                map().setWardId(source.getWard().getWardId());
+                map().setWardName(source.getWard().getName());
+                map().setProvinceId(source.getWard().getProvince().getProvinceId());
+                map().setProvinceName(source.getWard().getProvince().getName());
+            }
+        });
+    }
 
     @Override
     @Transactional

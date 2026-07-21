@@ -37,7 +37,8 @@ public class AddressController {
     }
 
     @PostMapping("/auth/user/addresses")
-    public ResponseEntity<AddressDTO> createAddress(@Valid @RequestBody AddressDTO addressDTO){
+    public ResponseEntity<AddressDTO>
+    createAddress(@Valid @RequestBody AddressDTO addressDTO){
         User user = authUtil.getCurrentUserEntity();
         AddressDTO saveAddress = addressService.createAddress(addressDTO, user);
         return new ResponseEntity<>(saveAddress, HttpStatus.CREATED);
@@ -69,6 +70,4 @@ public class AddressController {
         addressService.deleteUserAddress(addressId);
         return new ResponseEntity<>("successfully ", HttpStatus.OK);
     }
-
-
 }

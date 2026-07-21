@@ -7,8 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
-
-
 @Entity
 @Data
 @Table(name = "order_items")

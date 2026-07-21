@@ -53,4 +53,11 @@ public class Product {
     @ToString.Exclude
     private List<Discount> discounts = new ArrayList<>();
 
+    // New fields for product reviews
+    private Double averageRating = 0.0;
+    private Integer numberOfReviews = 0;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<ProductReview> productReviews = new ArrayList<>();
 }

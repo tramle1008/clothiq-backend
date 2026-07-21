@@ -5,6 +5,7 @@ import commerce.sbEcommerce.model.Order;
 import commerce.sbEcommerce.model.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -87,15 +88,15 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     Optional<Order> findByCode(String code);
 
-
     Page<Order> findByEmail(String email, Pageable pageable);
 
     Page<Order> findByDeliveryStatus(DeliveryStatus status, Pageable pageable);
-
 
     List<Order> findByEmail(String userEmail);
 
     @Query("SELECT o.paymentStatus FROM Order o WHERE o.code = :code AND o.email = :email")
     PaymentStatus findPaymentStatusByCodeAndEmail(String code, String email);
 
+    @EntityGraph(attributePaths = {"address", "address.ward", "address.ward.province"})
+    Page<Order> findAll(org.springframework.data.jpa.domain.Specification<Order> spec, Pageable pageable);
 }

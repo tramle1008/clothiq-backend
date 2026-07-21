@@ -20,5 +20,6 @@ public class ProductDTO {
     private Double discount;
     private RecordStatus status;
     private Long categoryId;
-
+    private Double averageRating; // New field
+    private Integer numberOfReviews; // New field
 }

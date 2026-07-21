@@ -17,14 +17,21 @@ public class FileServiceImp implements FileService {
         String originalFileName = file.getOriginalFilename();
 
         String randomId = UUID.randomUUID().toString();
-        String fileName = randomId.concat(originalFileName.substring(originalFileName.lastIndexOf('.')));
+        String extension = "";
+        if (originalFileName != null) {
+            int dotIndex = originalFileName.lastIndexOf('.');
+            if (dotIndex >= 0) {
+                extension = originalFileName.substring(dotIndex);
+            }
+        }
+        String fileName = randomId.concat(extension);
 
         String filePath = path + File.separator + fileName;
 
 
         File folder = new File(path);
         if(!folder.exists()){
-            folder.mkdir();
+            folder.mkdirs();
         }
 
         Files.copy(file.getInputStream(), Paths.get(filePath));

@@ -15,12 +15,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/categories")
 public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
 
-    @GetMapping("/api/public/categories")
+    @GetMapping()
     public ResponseEntity<CategoryResponse> getCategoryList(
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE_ALL) Integer pageSize,
@@ -32,7 +33,7 @@ public class CategoryController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/api/admin/categories")
+    @GetMapping("/admin")
     public ResponseEntity<CategoryResponse> getCategoryListForAdmin(
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE_ALL) Integer pageSize,
@@ -54,7 +55,7 @@ public class CategoryController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/api/admin/categories/search")
+    @GetMapping("/search")
     public ResponseEntity<List<CategoryDTO>> searchCategoriesForAdmin(
             @RequestParam("keyword") String keyword,
             @RequestParam(name = "limit", defaultValue = "10") Integer limit,
@@ -65,28 +66,28 @@ public class CategoryController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/api/public/categories")
+    @PostMapping("/categories")
     public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
         CategoryDTO saveCategoryDTO=  categoryService.createCategory(categoryDTO);
         return new ResponseEntity<>(saveCategoryDTO, HttpStatus.CREATED);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/api/public/categories/batch")
-    public ResponseEntity<List<CategoryDTO>> createCategories(@Valid @RequestBody List<CategoryDTO> categoryDTOs) {
-        List<CategoryDTO> savedCategories = categoryService.createbatchCategories(categoryDTOs);
-        return new ResponseEntity<>(savedCategories, HttpStatus.CREATED);
-    }
+//    @PreAuthorize("hasRole('ADMIN')")
+//    @PostMapping("/api/categories/batch")
+//    public ResponseEntity<List<CategoryDTO>> createCategories(@Valid @RequestBody List<CategoryDTO> categoryDTOs) {
+//        List<CategoryDTO> savedCategories = categoryService.createbatchCategories(categoryDTOs);
+//        return new ResponseEntity<>(savedCategories, HttpStatus.CREATED);
+//    }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/api/admin/categories/{categoryid}")
+    @DeleteMapping("/{categoryid}")
     public ResponseEntity<String> deleteCategory(@PathVariable Long categoryid) {
             String flag = categoryService.deleteCategory(categoryid);
             return  new ResponseEntity<>(flag, HttpStatus.OK);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/api/admin/categories/{categoryid}")
+    @PutMapping("/{categoryid}")
     public ResponseEntity<CategoryDTO> updateCategory(@Valid @RequestBody CategoryDTO categoryDTO,
                                                       @PathVariable("categoryid") Long categoryId) {
         CategoryDTO updatedCategoryDTO = categoryService.updateCategory(categoryDTO, categoryId);

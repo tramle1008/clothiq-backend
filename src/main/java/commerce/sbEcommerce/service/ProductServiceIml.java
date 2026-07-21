@@ -10,6 +10,7 @@ import commerce.sbEcommerce.payload.ProductDTO;
 import commerce.sbEcommerce.payload.ProductResponse;
 import commerce.sbEcommerce.repository.CategoryRepository;
 import commerce.sbEcommerce.repository.ProductRepository;
+import org.modelmapper.AbstractCondition;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -93,11 +94,13 @@ public class ProductServiceIml implements ProductService {
 
     @Override
     public ProductDTO getProductById(Long productId) {
-        Product product = productRepository.findOne(buildProductSpecification(null, null, List.of(RecordStatus.ACTIVE), true)
+        Product product = productRepository.findOne(buildProductSpecification(null, null, null, null, List.of(RecordStatus.ACTIVE), true)
                         .and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("productId"), productId)))
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
         return mapProduct(product);
     }
+
+
 
     @Override
     public ProductDTO addProductDefault(Long categoryId, ProductDTO productDTO) {
@@ -118,13 +121,13 @@ public class ProductServiceIml implements ProductService {
     }
 
     @Override
-    public ProductResponse getAllProduct(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId) {
-        return getProducts(pageNumber, pageSize, sortBy, sortOrder, key, categoryId, List.of(RecordStatus.ACTIVE), true);
+    public ProductResponse getAllProduct(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId, Double minPrice, Double maxPrice) {
+        return getProducts(pageNumber, pageSize, sortBy, sortOrder, key, categoryId, minPrice, maxPrice, List.of(RecordStatus.ACTIVE), true);
     }
 
     @Override
-    public ProductResponse getAllProductForAdmin(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId, List<RecordStatus> statuses) {
-        return getProducts(pageNumber, pageSize, sortBy, sortOrder, key, categoryId, resolveStatuses(statuses, true), false);
+    public ProductResponse getAllProductForAdmin(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId, Double minPrice, Double maxPrice, List<RecordStatus> statuses) {
+        return getProducts(pageNumber, pageSize, sortBy, sortOrder, key, categoryId, minPrice, maxPrice, resolveStatuses(statuses, true), false);
     }
 
     @Override
@@ -132,29 +135,29 @@ public class ProductServiceIml implements ProductService {
         Category category = categoryRepository.findOne(categoryHasIdAndStatus(categoryId, RecordStatus.ACTIVE))
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
 
-        return getProducts(pageNumber, pageSize, sortBy, sortOrder, null, Math.toIntExact(category.getCategoryId()), List.of(RecordStatus.ACTIVE), true);
+        return getProducts(pageNumber, pageSize, sortBy, sortOrder, null, Math.toIntExact(category.getCategoryId()), null, null, List.of(RecordStatus.ACTIVE), true);
     }
 
     @Override
     public ProductResponse getProductByCategoryForAdmin(Long categoryId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, List<RecordStatus> statuses) {
         categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
-        return getProducts(pageNumber, pageSize, sortBy, sortOrder, null, Math.toIntExact(categoryId), resolveStatuses(statuses, true), false);
+        return getProducts(pageNumber, pageSize, sortBy, sortOrder, null, Math.toIntExact(categoryId), null, null, resolveStatuses(statuses, true), false);
     }
 
     @Override
     public ProductResponse getProductByKey(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
-        return getProducts(pageNumber, pageSize, sortBy, sortOrder, key, null, List.of(RecordStatus.ACTIVE), true);
+        return getProducts(pageNumber, pageSize, sortBy, sortOrder, key, null, null, null, List.of(RecordStatus.ACTIVE), true);
     }
 
     @Override
-    public ProductResponse searchProductsByCodeOrName(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
-        return searchProducts(pageNumber, pageSize, sortBy, sortOrder, key, List.of(RecordStatus.ACTIVE), true);
+    public ProductResponse searchProductsByCodeOrName(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, Double minPrice, Double maxPrice) {
+        return searchProducts(pageNumber, pageSize, sortBy, sortOrder, key, minPrice, maxPrice, List.of(RecordStatus.ACTIVE), true);
     }
 
     @Override
-    public ProductResponse searchProductsByCodeOrNameForAdmin(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, List<RecordStatus> statuses) {
-        return searchProducts(pageNumber, pageSize, sortBy, sortOrder, key, resolveStatuses(statuses, true), false);
+    public ProductResponse searchProductsByCodeOrNameForAdmin(String key, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, Double minPrice, Double maxPrice, List<RecordStatus> statuses) {
+        return searchProducts(pageNumber, pageSize, sortBy, sortOrder, key, minPrice, maxPrice, resolveStatuses(statuses, true), false);
     }
 
     @Override
@@ -211,13 +214,13 @@ public class ProductServiceIml implements ProductService {
         return mapProduct(savedProduct);
     }
 
-    private ProductResponse getProducts(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId, List<RecordStatus> statuses, boolean requireActiveCategory) {
+    private ProductResponse getProducts(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Integer categoryId, Double minPrice, Double maxPrice, List<RecordStatus> statuses, boolean requireActiveCategory) {
         Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
 
         Pageable pageDetail = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
-        Specification<Product> spec = buildProductSpecification(key, categoryId, statuses, requireActiveCategory);
+        Specification<Product> spec = buildProductSpecification(key, categoryId, minPrice, maxPrice, statuses, requireActiveCategory);
         Page<Product> pageProduct = productRepository.findAll(spec, pageDetail);
 
         List<ProductDTO> productDTOS = pageProduct.getContent().stream()
@@ -234,12 +237,12 @@ public class ProductServiceIml implements ProductService {
         return productResponse;
     }
 
-    private ProductResponse searchProducts(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, List<RecordStatus> statuses, boolean requireActiveCategory) {
+    private ProductResponse searchProducts(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String key, Double minPrice, Double maxPrice, List<RecordStatus> statuses, boolean requireActiveCategory) {
         Sort sort = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
 
-        Specification<Product> spec = buildProductSpecification(null, null, statuses, requireActiveCategory);
+        Specification<Product> spec = buildProductSpecification(null, null, minPrice, maxPrice, statuses, requireActiveCategory);
         if (key != null && !key.isBlank()) {
             String normalizedKey = "%" + key.toLowerCase() + "%";
             spec = spec.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
@@ -263,7 +266,7 @@ public class ProductServiceIml implements ProductService {
         return response;
     }
 
-    private Specification<Product> buildProductSpecification(String key, Integer categoryId, List<RecordStatus> statuses, boolean requireActiveCategory) {
+    private Specification<Product> buildProductSpecification(String key, Integer categoryId, Double minPrice, Double maxPrice, List<RecordStatus> statuses, boolean requireActiveCategory) {
         Specification<Product> spec = (root, query, criteriaBuilder) -> root.get("status").in(statuses);
 
         if (key != null && !key.isBlank()) {
@@ -276,6 +279,16 @@ public class ProductServiceIml implements ProductService {
         if (categoryId != null) {
             spec = spec.and((root, query, criteriaBuilder) ->
                     criteriaBuilder.equal(root.get("category").get("categoryId"), categoryId));
+        }
+
+        if (minPrice != null) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.greaterThanOrEqualTo(root.get("salePrice"), minPrice));
+        }
+
+        if (maxPrice != null) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.lessThanOrEqualTo(root.get("salePrice"), maxPrice));
         }
 
         if (requireActiveCategory) {
