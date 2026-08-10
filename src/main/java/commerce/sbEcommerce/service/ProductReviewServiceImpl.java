@@ -1,17 +1,17 @@
 package commerce.sbEcommerce.service;
 
+import commerce.sbEcommerce.exceptioons.ForbiddenException;
 import commerce.sbEcommerce.exceptioons.ResourceNotFoundException;
-import commerce.sbEcommerce.exceptioons.UnauthorizedException;
 import commerce.sbEcommerce.model.Product;
 import commerce.sbEcommerce.model.ProductReview;
 import commerce.sbEcommerce.model.User;
 import commerce.sbEcommerce.payload.ProductReviewDTO;
 import commerce.sbEcommerce.payload.ReviewCreateDTO;
-import commerce.sbEcommerce.repository.ProductReviewRepository;
-import commerce.sbEcommerce.repository.ProductRepository;
-import commerce.sbEcommerce.repository.UserRepository;
 import commerce.sbEcommerce.repository.OrderItemRepository;
-import commerce.sbEcommerce.util.AuthUtil; // Import AuthUtil
+import commerce.sbEcommerce.repository.ProductRepository;
+import commerce.sbEcommerce.repository.ProductReviewRepository;
+import commerce.sbEcommerce.repository.UserRepository;
+import commerce.sbEcommerce.util.AuthUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,23 +39,22 @@ public class ProductReviewServiceImpl implements ProductReviewService {
     private ModelMapper modelMapper;
 
     @Autowired
-    private AuthUtil authUtil; // Autowire AuthUtil
+    private AuthUtil authUtil;
 
     @Override
     public ProductReviewDTO addReview(ReviewCreateDTO reviewCreateDTO) {
-        Long currentUserId = authUtil.getCurrentUserId(); // Get current user ID
+        Long currentUserId = authUtil.getCurrentUserId();
         User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", currentUserId));
 
         Product product = productRepository.findById(reviewCreateDTO.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", reviewCreateDTO.getProductId()));
 
-        // Validate if the user has purchased the product
         boolean hasPurchased = orderItemRepository.existsByProduct_ProductIdAndOrder_Address_User_UserId(
                 reviewCreateDTO.getProductId(), currentUserId);
 
         if (!hasPurchased) {
-            throw new UnauthorizedException("Bạn chưa mua sản phẩm này");
+            throw new ForbiddenException("Bạn chưa mua sản phẩm này nên không thể đánh giá");
         }
 
         ProductReview productReview = new ProductReview();
@@ -75,9 +74,7 @@ public class ProductReviewServiceImpl implements ProductReviewService {
     @Override
     public List<ProductReviewDTO> getReviewsByProductId(Long productId) {
         List<ProductReview> reviews = productReviewRepository.findByProduct_ProductId(productId);
-        return reviews.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+        return reviews.stream().map(this::mapToDTO).collect(Collectors.toList());
     }
 
     @Override
@@ -92,48 +89,45 @@ public class ProductReviewServiceImpl implements ProductReviewService {
 
     @Override
     public void deleteReview(Long reviewId) {
-        Long currentUserId = authUtil.getCurrentUserId(); // Get current user ID
+        Long currentUserId = authUtil.getCurrentUserId();
         ProductReview review = productReviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("ProductReview", "id", reviewId));
-        
-        // Check if the current user is the owner of the review
+
         if (!review.getUser().getUserId().equals(currentUserId)) {
-            throw new UnauthorizedException("Bạn không có quyền xóa đánh giá này");
+            throw new ForbiddenException("Bạn không có quyền xóa đánh giá này");
         }
 
         productReviewRepository.delete(review);
-
         updateProductRating(review.getProduct());
     }
 
     @Override
     public ProductReviewDTO updateReview(Long reviewId, ReviewCreateDTO reviewCreateDTO) {
-        Long currentUserId = authUtil.getCurrentUserId(); // Get current user ID
+        Long currentUserId = authUtil.getCurrentUserId();
         User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", currentUserId));
 
         Product product = productRepository.findById(reviewCreateDTO.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", reviewCreateDTO.getProductId()));
 
-        // Validate if the current user is the owner of the review
         ProductReview existingReview = productReviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("ProductReview", "id", reviewId));
 
         if (!existingReview.getUser().getUserId().equals(currentUserId)) {
-            throw new UnauthorizedException("Bạn không có quyền cập nhật đánh giá này");
+            throw new ForbiddenException("Bạn không có quyền cập nhật đánh giá này");
         }
 
-        // Validate if the user has purchased the product (optional, but good for consistency)
         boolean hasPurchased = orderItemRepository.existsByProduct_ProductIdAndOrder_Address_User_UserId(
                 reviewCreateDTO.getProductId(), currentUserId);
 
         if (!hasPurchased) {
-            throw new UnauthorizedException("Bạn chưa mua sản phẩm này");
+            throw new ForbiddenException("Bạn chưa mua sản phẩm này");
         }
 
         existingReview.setRating(reviewCreateDTO.getRating());
         existingReview.setComment(reviewCreateDTO.getComment());
-        existingReview.setReviewDate(LocalDateTime.now()); // Update review date on modification
+        existingReview.setReviewDate(LocalDateTime.now());
+
         ProductReview savedReview = productReviewRepository.save(existingReview);
 
         updateProductRating(product);

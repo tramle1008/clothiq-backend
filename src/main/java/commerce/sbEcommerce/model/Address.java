@@ -37,7 +37,7 @@ public class Address {
 
     @NotBlank
     @ToString.Exclude
-    @Size(min = 10, message = "So dien thoai phai co it nhat 10 chu so")
+    @Size(min = 10, message = "Số điện thoại phải có ít nhất 10 chữ số")
     private String phoneNumber;
 
     @ManyToOne

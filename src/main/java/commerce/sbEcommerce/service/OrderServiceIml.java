@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -28,6 +30,20 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.lowagie.text.Chunk;
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+import java.awt.Color;
 
 @Service
 public class OrderServiceIml implements OrderService {
@@ -331,10 +347,10 @@ public class OrderServiceIml implements OrderService {
     @Transactional
     public OrderDTO adminMarkShipped(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n hÃ ng"));
+                .orElseThrow(() -> new RuntimeException("Không thấy đơn hàng"));
 
         if (order.getDeliveryStatus() != DeliveryStatus.PENDING) {
-            throw new RuntimeException("Hiá»‡n tráº¡ng thÃ¡i Ä‘Æ¡n hÃ ng khÃ´ng lÃ  PENDING");
+            throw new RuntimeException("Trạng thái đơn hàng không đúng");
         }
 
         order.setDeliveryStatus(DeliveryStatus.SHIPPED);
@@ -346,10 +362,10 @@ public class OrderServiceIml implements OrderService {
     @Transactional
     public OrderDTO delivererMarkDelivered(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("KhÃ´ng tÃ¬m Ä‘Æ°á»£c Ä‘Æ¡n hÃ ng"));
+                .orElseThrow(() -> new RuntimeException("Không thấy đơn hàng"));
 
         if (order.getDeliveryStatus() != DeliveryStatus.SHIPPED) {
-            throw new RuntimeException("Hiá»‡n tráº¡ng thÃ¡i Ä‘Æ¡n hÃ ng khÃ´ng lÃ  SHIPPED");
+            throw new RuntimeException("Trạng thái đơn hàng không là đang giao");
         }
 
         if (order.getPaymentStatus() == PaymentStatus.UNPAID) {
@@ -359,6 +375,46 @@ public class OrderServiceIml implements OrderService {
         order.setDeliveryStatus(DeliveryStatus.DELIVERED);
         orderRepository.save(order);
         return mapOrderToDto(order);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generateShippingSlipPdf(List<Long> orderIds) {
+        if (orderIds == null || orderIds.isEmpty()) {
+            throw new RuntimeException("Không có đơn hàng để in");
+        }
+
+        List<Order> orders = new ArrayList<>();
+        orderRepository.findAllById(orderIds).forEach(orders::add);
+        if (orders.isEmpty()) {
+            throw new RuntimeException("Không tìm thấy đơn hàng");
+        }
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document(PageSize.A4, 36, 36, 36, 36);
+
+        try {
+            PdfWriter.getInstance(document, outputStream);
+            document.open();
+
+            for (int i = 0; i < orders.size(); i++) {
+                Order order = orders.get(i);
+                if (order.getDeliveryStatus() != DeliveryStatus.SHIPPED) {
+                    throw new RuntimeException("Chỉ được in phiếu cho đơn ở trạng thái SHIPPED");
+                }
+
+                appendShippingSlip(document, order);
+                if (i < orders.size() - 1) {
+                    document.newPage();
+                }
+            }
+        } catch (DocumentException e) {
+            throw new RuntimeException("Không thể tạo PDF", e);
+        } finally {
+            document.close();
+        }
+
+        return outputStream.toByteArray();
     }
 
     private Page<OrderDTO> searchOrders(int pageNumber, int pageSize, String sortBy, String sortOrder,
@@ -471,5 +527,116 @@ public class OrderServiceIml implements OrderService {
         }
 
         return dto;
+    }
+
+    private void appendShippingSlip(Document document, Order order) throws DocumentException {
+        Font titleFont = new Font(Font.HELVETICA, 16, Font.BOLD, Color.BLACK);
+        Font headerFont = new Font(Font.HELVETICA, 11, Font.BOLD, Color.BLACK);
+        Font normalFont = new Font(Font.HELVETICA, 10, Font.NORMAL, Color.BLACK);
+
+        Paragraph title = new Paragraph("PHIẾU GIAO HÀNG", titleFont);
+        title.setAlignment(Element.ALIGN_CENTER);
+        title.setSpacingAfter(10f);
+        document.add(title);
+
+        Paragraph meta = new Paragraph();
+        meta.setAlignment(Element.ALIGN_CENTER);
+        meta.add(new Chunk("Mã đơn: #" + order.getOrderId() + "\n", headerFont));
+        meta.add(new Chunk("Mã phiếu: " + (order.getCode() != null ? order.getCode() : "--") + "\n", normalFont));
+        meta.add(new Chunk("Ngày in: " + LocalDate.now(VIETNAM_ZONE) + "\n", normalFont));
+        meta.setSpacingAfter(12f);
+        document.add(meta);
+
+        PdfPTable infoTable = new PdfPTable(2);
+        infoTable.setWidthPercentage(100);
+        infoTable.setWidths(new float[]{1f, 2f});
+        addInfoCell(infoTable, "Khách hàng", getUserName(order), headerFont, normalFont);
+        addInfoCell(infoTable, "Email", order.getEmail(), headerFont, normalFont);
+        addInfoCell(infoTable, "Số điện thoại", order.getAddress() != null ? order.getAddress().getPhoneNumber() : "--", headerFont, normalFont);
+        addInfoCell(infoTable, "Địa chỉ", formatAddress(order), headerFont, normalFont);
+        addInfoCell(infoTable, "Thanh toán", order.getPaymentStatus() != null ? order.getPaymentStatus().name() : "--", headerFont, normalFont);
+        addInfoCell(infoTable, "Trạng thái giao", order.getDeliveryStatus() != null ? order.getDeliveryStatus().name() : "--", headerFont, normalFont);
+        document.add(infoTable);
+
+        Paragraph itemsTitle = new Paragraph("Danh sách sản phẩm", headerFont);
+        itemsTitle.setSpacingBefore(12f);
+        itemsTitle.setSpacingAfter(6f);
+        document.add(itemsTitle);
+
+        PdfPTable itemTable = new PdfPTable(5);
+        itemTable.setWidthPercentage(100);
+        itemTable.setWidths(new float[]{4f, 1f, 2f, 2f, 2f});
+        addHeaderCell(itemTable, "Sản phẩm", headerFont);
+        addHeaderCell(itemTable, "SL", headerFont);
+        addHeaderCell(itemTable, "Đơn giá", headerFont);
+        addHeaderCell(itemTable, "Giảm giá", headerFont);
+        addHeaderCell(itemTable, "Thành tiền", headerFont);
+
+        double grandTotal = 0;
+        for (OrderItem item : order.getOrderItemList()) {
+            double lineTotal = item.getOrderProductPrice() * (100 - item.getDiscount()) * 0.01 * item.getQuantity();
+            grandTotal += lineTotal;
+            addBodyCell(itemTable, item.getProduct() != null ? item.getProduct().getProductName() : "--", normalFont);
+            addBodyCell(itemTable, String.valueOf(item.getQuantity()), normalFont);
+            addBodyCell(itemTable, formatMoney(item.getOrderProductPrice()), normalFont);
+            addBodyCell(itemTable, item.getDiscount() + "%", normalFont);
+            addBodyCell(itemTable, formatMoney(lineTotal), normalFont);
+        }
+        document.add(itemTable);
+
+        Paragraph total = new Paragraph("Tổng tiền: " + formatMoney(grandTotal), headerFont);
+        total.setAlignment(Element.ALIGN_RIGHT);
+        total.setSpacingBefore(10f);
+        document.add(total);
+
+    }
+
+    private void addInfoCell(PdfPTable table, String label, String value, Font labelFont, Font valueFont) {
+        PdfPCell keyCell = new PdfPCell(new Phrase(label + ":", labelFont));
+        keyCell.setBorder(Rectangle.BOX);
+        keyCell.setPadding(6f);
+        table.addCell(keyCell);
+
+        PdfPCell valueCell = new PdfPCell(new Phrase(value != null ? value : "--", valueFont));
+        valueCell.setBorder(Rectangle.BOX);
+        valueCell.setPadding(6f);
+        table.addCell(valueCell);
+    }
+
+    private void addHeaderCell(PdfPTable table, String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setBackgroundColor(new Color(230, 236, 240));
+        cell.setPadding(6f);
+        table.addCell(cell);
+    }
+
+    private void addBodyCell(PdfPTable table, String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(text != null ? text : "--", font));
+        cell.setPadding(6f);
+        table.addCell(cell);
+    }
+
+    private String getUserName(Order order) {
+        return userRepository.findByEmail(order.getEmail())
+                .map(User::getUserName)
+                .orElse("--");
+    }
+
+    private String formatAddress(Order order) {
+        if (order.getAddress() == null) {
+            return "--";
+        }
+        Address address = order.getAddress();
+        List<String> parts = new ArrayList<>();
+        if (address.getDetail() != null) parts.add(address.getDetail());
+        if (address.getWard() != null) parts.add(address.getWard().getName());
+        if (address.getWard() != null && address.getWard().getProvince() != null) {
+            parts.add(address.getWard().getProvince().getName());
+        }
+        return parts.isEmpty() ? "--" : String.join(", ", parts);
+    }
+
+    private String formatMoney(double value) {
+        return String.format("%,.0f VND", value);
     }
 }

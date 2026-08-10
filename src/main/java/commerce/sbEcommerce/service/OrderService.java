@@ -5,6 +5,7 @@ import commerce.sbEcommerce.payload.OrderDTO;
 import commerce.sbEcommerce.payload.OrderSearchCriteria;
 import commerce.sbEcommerce.payload.QRPaymentResponseDTO;
 import org.springframework.data.domain.Page;
+import java.util.List;
 
 
 public interface OrderService {
@@ -22,6 +23,8 @@ public interface OrderService {
     OrderDTO adminMarkShipped(Long orderId);
 
     OrderDTO delivererMarkDelivered(Long orderId);
+
+    byte[] generateShippingSlipPdf(List<Long> orderIds);
 
     QRPaymentResponseDTO createOrderWithQR(String email, Long addressId);
 

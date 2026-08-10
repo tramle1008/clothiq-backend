@@ -22,6 +22,7 @@ import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -133,11 +134,30 @@ public class AdminController {
         );
     }
 
-
-
     @PutMapping("/orders/{orderId}/ship")
     public ResponseEntity<OrderDTO> adminMarkShipped(@PathVariable Long orderId) {
         return new ResponseEntity<>(orderService.adminMarkShipped(orderId), HttpStatus.OK);
+    }
+
+    @PutMapping("/orders/{orderId}/deliver")
+    public ResponseEntity<OrderDTO> adminMarkDelivered(@PathVariable Long orderId) {
+        return new ResponseEntity<>(orderService.delivererMarkDelivered(orderId), HttpStatus.OK);
+    }
+
+    @PutMapping("/orders/deliver")
+    public ResponseEntity<List<OrderDTO>> adminMarkDeliveredBatch(@RequestBody List<Long> orderIds) {
+        if (orderIds == null || orderIds.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<OrderDTO> updatedOrders = new ArrayList<>();
+        for (Long orderId : orderIds) {
+            if (orderId != null) {
+                updatedOrders.add(orderService.delivererMarkDelivered(orderId));
+            }
+        }
+
+        return ResponseEntity.ok(updatedOrders);
     }
 
 
