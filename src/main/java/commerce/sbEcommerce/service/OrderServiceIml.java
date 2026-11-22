@@ -104,11 +104,11 @@ public class OrderServiceIml implements OrderService {
                                         String pgName, String pgPaymentId, String pgStatus, String pgResponseMessage) {
         Cart cart = cartRepository.findByUser_Email(emailId);
         if (cart == null || cart.getCartItems().isEmpty()) {
-            throw new RuntimeException("Cart rá»—ng");
+            throw new RuntimeException("Cart rổng");
         }
 
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new RuntimeException("KhÃ´ng tÃ¬m tháº¥y Ä‘á»‹a chá»‰"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy địa chỉ"));
 
         Order order = new Order();
         order.setEmail(emailId);
@@ -185,7 +185,7 @@ public class OrderServiceIml implements OrderService {
 
         Cart cart = cartRepository.findByUser_Email(email);
         if (cart == null || cart.getCartItems().isEmpty()) {
-            throw new RuntimeException("Cart rá»—ng");
+            throw new RuntimeException("Cart rổng");
         }
 
         List<CartItem> cartItems = new ArrayList<>(cart.getCartItems());
@@ -251,14 +251,14 @@ public class OrderServiceIml implements OrderService {
     @Transactional
     public void markOrderPaidByCode(String code, Long amount, String referenceCode) {
         Order order = orderRepository.findByCode(code)
-                .orElseThrow(() -> new RuntimeException("KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n hÃ ng"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
         if (order.getPaymentStatus() == PaymentStatus.PAID) {
             return;
         }
 
         if (!order.getTotalAmount().equals(amount.doubleValue())) {
-            throw new RuntimeException("Sá»‘ tiá»n khÃ´ng khá»›p vá»›i Ä‘Æ¡n hÃ ng");
+            throw new RuntimeException("Số tiền không khớp với đơn hàng");
         }
 
         order.setPaymentStatus(PaymentStatus.PAID);
