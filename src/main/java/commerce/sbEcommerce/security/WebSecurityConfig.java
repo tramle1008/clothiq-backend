@@ -75,6 +75,7 @@ public class WebSecurityConfig {
                         .requestMatchers(
                                 new AntPathRequestMatcher("/api/auth/**"),
                                 new AntPathRequestMatcher("/api/public/**"),
+                                new AntPathRequestMatcher("/api/banners", "GET"),
                                 new AntPathRequestMatcher("/api/products/**"),
                                 new AntPathRequestMatcher("/api/stores"),
                                 new AntPathRequestMatcher("/api/stores/nearest"),
